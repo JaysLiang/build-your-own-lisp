@@ -27,6 +27,21 @@ void add_history(char* unused) {
 
 
 
+void printchild(mpc_ast_t* a) {
+    printf("Tag: %s\n", a->tag);
+    printf("Contents: %s\n", a->contents);
+    printf("Number of children: %i\n", a->children_num);
+
+    for (int i = 0 ; i < a->children_num; i++) {
+        mpc_ast_t* c0 = a->children[i];
+        printf("First Child Tag: %s\n", c0->tag);
+        printf("First Child Contents: %s\n", c0->contents);
+        printf("First Child Number of children: %i\n",
+               c0->children_num);
+
+    }
+
+}
 int main(int argc, char** argv) {
     puts("Lispy Version 0.0.0.0.1");
     puts("Press Ctrl+c to Exit\n");
@@ -50,11 +65,13 @@ int main(int argc, char** argv) {
 
         add_history(input);
 
-        printf("No you're a %s\n", input);
+//        printf("No you're a %s\n", input);
         /* Attempt to Parse the user Input */
         mpc_result_t r;
         if (mpc_parse("<stdin>", input, Lispy, &r)) {
             /* On Success Print the AST */
+            printchild(r.output);
+
             mpc_ast_print(r.output);
             mpc_ast_delete(r.output);
         } else {
@@ -64,5 +81,7 @@ int main(int argc, char** argv) {
         }
         free(input);
     }
+
+    mpc_cleanup(4, Number, Operator, Expr, Lispy);
     return 0;
 }
