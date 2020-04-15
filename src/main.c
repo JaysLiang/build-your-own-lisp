@@ -42,6 +42,37 @@ void printchild(mpc_ast_t* a) {
     }
 
 }
+
+long eval_op(long x, char* operator, long y) {
+    if (strstr(operator, "+")) {
+        return x + y;
+    } else if (strstr(operator, "-")) {
+        return x - y;
+    } else if (strstr(operator, "*")) {
+        return x * y;
+    } else if (strstr(operator, "/")) {
+        return x / y;
+    }
+
+}
+
+long eval(mpc_ast_t* a) {
+    if (strstr(a->tag, "number")) {
+        return atoi(a->contents);
+    }
+
+    char* op=a->children[1]->contents;
+
+    long x = eval(a->children[2]);
+
+    int i = 3;
+    while(strstr(a->children[i]->tag, "expr")) {
+        x = eval_op(x, op, eval(a->children[i]));
+        i++;
+    }
+    return x;
+}
+
 int main(int argc, char** argv) {
     puts("Lispy Version 0.0.0.0.1");
     puts("Press Ctrl+c to Exit\n");
@@ -70,9 +101,10 @@ int main(int argc, char** argv) {
         mpc_result_t r;
         if (mpc_parse("<stdin>", input, Lispy, &r)) {
             /* On Success Print the AST */
-            printchild(r.output);
-
+//            printchild(r.output);
             mpc_ast_print(r.output);
+            long ret = eval(r.output);
+            printf("%ld\n",ret);
             mpc_ast_delete(r.output);
         } else {
             /* Otherwise Print the Error */
