@@ -26,44 +26,89 @@ void add_history(char* unused) {
 #endif
 
 
+typedef struct{
+    int type;
+    long num;
+    int err
+} lval;
 
-void printchild(mpc_ast_t* a) {
-    printf("Tag: %s\n", a->tag);
-    printf("Contents: %s\n", a->contents);
-    printf("Number of children: %i\n", a->children_num);
+enum {
+    LVAL_NUM,
+    LVAL_ERR
+};
 
-    for (int i = 0 ; i < a->children_num; i++) {
-        mpc_ast_t* c0 = a->children[i];
-        printf("First Child Tag: %s\n", c0->tag);
-        printf("First Child Contents: %s\n", c0->contents);
-        printf("First Child Number of children: %i\n",
-               c0->children_num);
+enum {
+    LERR_DIV_ZERO,
+    LERR_BAD_OP,
+    LERR_BAD_NUM
+};
 
-    }
-
+lval lval_num(long x) {
+    lval v;
+    v.type = LVAL_NUM;
+    v.num = x;
+    return v;
 }
 
-long eval_op(long x, char* operator, long y) {
+lval lval_err(long x) {
+    lval v;
+    v.type = LVAL_ERR;
+    v.num = x;
+    return v;
+}
+
+void lval_print(lval v) {
+    switch (v.type) {
+        case LVAL_NUM:
+            printf("%li", v.num);
+            break;
+        case LVAL_ERR:
+            if (v.err == LERR_DIV_ZERO) {
+                printf("Error: Division by zero!");
+            } else if (v.err == LERR_BAD_OP) {
+                printf("Error: Invalid Operator!");
+            } else if (v.err == LERR_BAD_NUM) {
+                printf("Error: Invalid Number!");
+            }
+            break;
+    }
+}
+
+void lval_println(lval v) {
+    lval_print(v);
+    printf("\n");
+}
+
+
+lval eval_op(lval x, char* operator, lval y) {
+    if (x.type == LVAL_ERR) {
+        return x;
+    }
+    if (y.type == LVAL_ERR) {
+        return y;
+    }
+
     if (strstr(operator, "+")) {
-        return x + y;
+        return lval_num(x.num + y.num);
     } else if (strstr(operator, "-")) {
-        return x - y;
+        return lval_num(x.num - y.num);
     } else if (strstr(operator, "*")) {
-        return x * y;
+        return lval_num(x.num * y.num);
     } else if (strstr(operator, "/")) {
-        return x / y;
+        return y.num == 0 ? lval_err(LERR_DIV_ZERO): lval_num(x.num / y.num);
     }
-
 }
 
-long eval(mpc_ast_t* a) {
+lval eval(mpc_ast_t* a) {
     if (strstr(a->tag, "number")) {
-        return atoi(a->contents);
+        errno = 0;
+        long x = strtol(a->contents, NULL, 10);
+        return errno != ERANGE? lval_num(x):lval_err(LERR_BAD_NUM);
     }
 
     char* op=a->children[1]->contents;
 
-    long x = eval(a->children[2]);
+    lval x = eval(a->children[2]);
 
     int i = 3;
     while(strstr(a->children[i]->tag, "expr")) {
@@ -103,8 +148,8 @@ int main(int argc, char** argv) {
             /* On Success Print the AST */
 //            printchild(r.output);
             mpc_ast_print(r.output);
-            long ret = eval(r.output);
-            printf("%ld\n",ret);
+            lval ret = eval(r.output);
+            lval_println(ret);
             mpc_ast_delete(r.output);
         } else {
             /* Otherwise Print the Error */
